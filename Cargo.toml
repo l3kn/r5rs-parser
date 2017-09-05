@@ -1,0 +1,8 @@
+[package]
+name = "r5rs_parser"
+version = "0.1.0"
+authors = ["Leon Rische <leon.rische@me.com>"]
+
+[dependencies]
+nom = "3.2.0"
+rustyline = "1.0.0"
