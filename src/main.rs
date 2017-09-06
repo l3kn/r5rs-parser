@@ -5,6 +5,8 @@ extern crate rustyline;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
+use nom::{digit};
+
 #[derive(Debug)]
 enum SyntacticKeyword {
     Else, Arrow, Define, Unquote, UnquoteSplicing,
@@ -50,8 +52,31 @@ named!(
     )
 );
 
+named!(
+    integer_literal,
+    recognize!(
+        do_parse!(
+            opt!(tag!("-")) >>
+            digit >>
+            ()
+        )
+    )
+);
+
+named!(
+    integer<i64>,
+    map_res!(
+        map_res!(
+            integer_literal,
+            std::str::from_utf8
+        ),
+        |s: &str| s.parse::<i64>()
+    )
+);
+
 fn parse(line: &str) {
-    let res = syntactic_keyword(line.as_bytes());
+    // let res = syntactic_keyword(line.as_bytes());
+    let res = integer(line.as_bytes());
     println!("Parsed {:#?}", res);
 }
 
@@ -83,3 +108,4 @@ fn main() {
     }
     rl.save_history("history.txt").unwrap();
 }
+
