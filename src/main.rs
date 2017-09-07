@@ -5,7 +5,7 @@ extern crate rustyline;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-use nom::{digit};
+use nom::{digit, oct_digit, hex_digit};
 
 #[derive(Debug)]
 enum SyntacticKeyword {
@@ -52,27 +52,76 @@ named!(
     )
 );
 
+fn is_bin_digit(byte: u8) -> bool {
+    byte == b'0' || byte == b'1'
+}
+
+named!(bin_digit, take_while1!(is_bin_digit));
+
+named!(sign, recognize!(opt!(one_of!("+-"))));
+
 named!(
-    integer_literal,
-    recognize!(
-        do_parse!(
-            opt!(tag!("-")) >>
-            digit >>
-            ()
-        )
+    integer_literal2,
+    recognize!(do_parse!(sign >> bin_digit >> ()))
+);
+
+named!(
+    integer_literal8,
+    recognize!(do_parse!(sign >> oct_digit >> ()))
+);
+
+named!(
+    integer_literal10,
+    recognize!(do_parse!(sign >> digit >> ()))
+);
+
+named!(
+    integer_literal16,
+    recognize!(do_parse!(sign >> hex_digit >> ()))
+);
+
+named!(
+    integer2<i64>,
+    map_res!(
+        map_res!(integer_literal2, std::str::from_utf8),
+        |s| i64::from_str_radix(s, 2)
+    )
+);
+
+named!(
+    integer8<i64>,
+    map_res!(
+        map_res!(integer_literal8, std::str::from_utf8),
+        |s| i64::from_str_radix(s, 8)
+    )
+);
+
+named!(
+    integer10<i64>,
+    map_res!(
+        map_res!(integer_literal10, std::str::from_utf8),
+        |s| i64::from_str_radix(s, 10)
+    )
+);
+
+named!(
+    integer16<i64>,
+    map_res!(
+        map_res!(integer_literal16, std::str::from_utf8),
+        |s| i64::from_str_radix(s, 16)
     )
 );
 
 named!(
     integer<i64>,
-    map_res!(
-        map_res!(
-            integer_literal,
-            std::str::from_utf8
-        ),
-        |s: &str| s.parse::<i64>()
+    alt!(
+        preceded!(tag!("#b"), integer2) |
+        preceded!(tag!("#o"), integer8) |
+        preceded!(opt!(tag!("#d")), integer10) |
+        preceded!(tag!("#x"), integer16)
     )
 );
+
 
 fn parse(line: &str) {
     // let res = syntactic_keyword(line.as_bytes());
