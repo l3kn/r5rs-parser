@@ -2,6 +2,8 @@
 extern crate nom;
 extern crate rustyline;
 
+use std::str;
+
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
@@ -34,20 +36,20 @@ named!(
 named!(
     expression_keyword<ExpressionKeyword>,
     alt_complete!(
-        tag!("quote") => { |_| ExpressionKeyword::Quote } |
-        tag!("lambda") => { |_| ExpressionKeyword::Lambda } |
-        tag!("if") => { |_| ExpressionKeyword::If } |
-        tag!("set!") => { |_| ExpressionKeyword::Set } |
-        tag!("begin") => { |_| ExpressionKeyword::Begin } |
-        tag!("cond") => { |_| ExpressionKeyword::Cond } |
-        tag!("and") => { |_| ExpressionKeyword::And } |
-        tag!("or") => { |_| ExpressionKeyword::Or } |
-        tag!("case") => { |_| ExpressionKeyword::Case } |
-        tag!("letrec") => { |_| ExpressionKeyword::LetRec } |
-        tag!("let*") => { |_| ExpressionKeyword::LetStar } |
-        tag!("let") => { |_| ExpressionKeyword::Let } |
-        tag!("do") => { |_| ExpressionKeyword::Do } |
-        tag!("delay") => { |_| ExpressionKeyword::Delay } |
+        tag!("quote")      => { |_| ExpressionKeyword::Quote } |
+        tag!("lambda")     => { |_| ExpressionKeyword::Lambda } |
+        tag!("if")         => { |_| ExpressionKeyword::If } |
+        tag!("set!")       => { |_| ExpressionKeyword::Set } |
+        tag!("begin")      => { |_| ExpressionKeyword::Begin } |
+        tag!("cond")       => { |_| ExpressionKeyword::Cond } |
+        tag!("and")        => { |_| ExpressionKeyword::And } |
+        tag!("or")         => { |_| ExpressionKeyword::Or } |
+        tag!("case")       => { |_| ExpressionKeyword::Case } |
+        tag!("letrec")     => { |_| ExpressionKeyword::LetRec } |
+        tag!("let*")       => { |_| ExpressionKeyword::LetStar } |
+        tag!("let")        => { |_| ExpressionKeyword::Let } |
+        tag!("do")         => { |_| ExpressionKeyword::Do } |
+        tag!("delay")      => { |_| ExpressionKeyword::Delay } |
         tag!("quasiquote") => { |_| ExpressionKeyword::Quasiquote }
     )
 );
@@ -148,17 +150,62 @@ enum Token {
     Number(i64),
     Boolean(bool),
     Character(char),
+    String(String),
 }
 
 named!(
     token<Token>,
     alt!(
         syntactic_keyword => { |kw| Token::Keyword(kw) } |
-        integer => { |i| Token::Number(i) } |
-        boolean => { |b| Token::Boolean(b) } |
-        character => { |c| Token::Character(c) }
+        integer           => { |i| Token::Number(i) } |
+        boolean           => { |b| Token::Boolean(b) } |
+        character         => { |c| Token::Character(c) } |
+        string            => { |s| Token::String(s) }
     )
 );
+
+named!(string<String>,
+    delimited!(tag!("\""), string_content, tag!("\""))
+);
+
+fn to_s(i:Vec<u8>) -> String {
+  String::from_utf8_lossy(&i).into_owned()
+}
+
+named!(
+    string_content<String>,
+    map!(
+        escaped_transform!(
+            take_until_either!("\"\\"),
+            '\\',
+            alt!(
+                tag!("\\") => { |_| &b"\\"[..] } |
+                tag!("\"") => { |_| &b"\""[..] } |
+                tag!("n") => { |_| &b"\n"[..] } |
+                tag!("r") => { |_| &b"\r"[..] } |
+                tag!("t") => { |_| &b"\t"[..] }
+            )
+        ),
+        to_s
+    )
+);
+// named!(
+//     string_content<String>,
+//     map!(
+//         escaped_transform!(
+//             take_until_either!("\"\\"),
+//             '\\',
+//             alt!(
+//                 tag!("\\") => { |_| &b"\\"[..] } |
+//                 tag!("\"") => { |_| &b"\""[..] } |
+//                 tag!("n") => { |_| &b"\n"[..] } |
+//                 tag!("r") => { |_| &b"\r"[..] } |
+//                 tag!("t") => { |_| &b"\t"[..] }
+//             )
+//         ),
+//         to_s
+//     )
+// );
 
 fn parse(line: &str) {
     let res = token(line.as_bytes());
