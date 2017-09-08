@@ -22,33 +22,33 @@ enum ExpressionKeyword {
 named!(
     syntactic_keyword<SyntacticKeyword>,
     alt_complete!(
-        map!(expression_keyword,      |e| SyntacticKeyword::Expression(e)) |
-        map!(tag!("else"),            |_| SyntacticKeyword::Else) |
-        map!(tag!("=>"),              |_| SyntacticKeyword::Arrow) |
-        map!(tag!("define"),          |_| SyntacticKeyword::Define) |
-        map!(tag!("unquote-splicing"),|_| SyntacticKeyword::UnquoteSplicing) |
-        map!(tag!("unquote"),         |_| SyntacticKeyword::Unquote)
+        expression_keyword       => { |e| SyntacticKeyword::Expression(e) } |
+        tag!("else")             => { |_| SyntacticKeyword::Else } |
+        tag!("=>")               => { |_| SyntacticKeyword::Arrow } |
+        tag!("define")           => { |_| SyntacticKeyword::Define } |
+        tag!("unquote-splicing") => { |_| SyntacticKeyword::UnquoteSplicing } |
+        tag!("unquote")          => { |_| SyntacticKeyword::Unquote }
     )
 );
 
 named!(
     expression_keyword<ExpressionKeyword>,
     alt_complete!(
-        map!(tag!("quote"),     |_| ExpressionKeyword::Quote) |
-        map!(tag!("lambda"),    |_| ExpressionKeyword::Lambda) |
-        map!(tag!("if"),        |_| ExpressionKeyword::If) |
-        map!(tag!("set!"),      |_| ExpressionKeyword::Set) |
-        map!(tag!("begin"),     |_| ExpressionKeyword::Begin) |
-        map!(tag!("cond"),      |_| ExpressionKeyword::Cond) |
-        map!(tag!("and"),       |_| ExpressionKeyword::And) |
-        map!(tag!("or"),        |_| ExpressionKeyword::Or) |
-        map!(tag!("case"),      |_| ExpressionKeyword::Case) |
-        map!(tag!("letrec"),    |_| ExpressionKeyword::LetRec) |
-        map!(tag!("let*"),      |_| ExpressionKeyword::LetStar) |
-        map!(tag!("let"),       |_| ExpressionKeyword::Let) |
-        map!(tag!("do"),        |_| ExpressionKeyword::Do) |
-        map!(tag!("delay"),     |_| ExpressionKeyword::Delay) |
-        map!(tag!("quasiquote"),|_| ExpressionKeyword::Quasiquote)
+        tag!("quote") => { |_| ExpressionKeyword::Quote } |
+        tag!("lambda") => { |_| ExpressionKeyword::Lambda } |
+        tag!("if") => { |_| ExpressionKeyword::If } |
+        tag!("set!") => { |_| ExpressionKeyword::Set } |
+        tag!("begin") => { |_| ExpressionKeyword::Begin } |
+        tag!("cond") => { |_| ExpressionKeyword::Cond } |
+        tag!("and") => { |_| ExpressionKeyword::And } |
+        tag!("or") => { |_| ExpressionKeyword::Or } |
+        tag!("case") => { |_| ExpressionKeyword::Case } |
+        tag!("letrec") => { |_| ExpressionKeyword::LetRec } |
+        tag!("let*") => { |_| ExpressionKeyword::LetStar } |
+        tag!("let") => { |_| ExpressionKeyword::Let } |
+        tag!("do") => { |_| ExpressionKeyword::Do } |
+        tag!("delay") => { |_| ExpressionKeyword::Delay } |
+        tag!("quasiquote") => { |_| ExpressionKeyword::Quasiquote }
     )
 );
 
@@ -125,8 +125,8 @@ named!(
 named!(
     boolean<bool>,
     alt!(
-        map!(tag!("#t"), |_| true) |
-        map!(tag!("#f"), |_| false)
+        tag!("#t") => { |_| true } |
+        tag!("#f") => { |_| false }
     )
 );
 
@@ -135,8 +135,8 @@ named!(
     preceded!(
         tag!("#\\"),
         alt_complete!(
-            map!(tag!("space"), |_| ' ') |
-            map!(tag!("newline"), |_| '\n') |
+            tag!("space") => { |_| ' ' } |
+            tag!("newline") => { |_| '\n' } |
             anychar
         )
     )
@@ -153,10 +153,10 @@ enum Token {
 named!(
     token<Token>,
     alt!(
-        map!(syntactic_keyword, |kw| Token::Keyword(kw)) |
-        map!(integer, |i| Token::Number(i)) |
-        map!(boolean, |b| Token::Boolean(b)) |
-        map!(character, |c| Token::Character(c))
+        syntactic_keyword => { |kw| Token::Keyword(kw) } |
+        integer => { |i| Token::Number(i) } |
+        boolean => { |b| Token::Boolean(b) } |
+        character => { |c| Token::Character(c) }
     )
 );
 
