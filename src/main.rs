@@ -5,15 +5,15 @@ extern crate rustyline;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-use nom::{digit, oct_digit, hex_digit};
+use nom::{digit, oct_digit, hex_digit, anychar};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum SyntacticKeyword {
     Else, Arrow, Define, Unquote, UnquoteSplicing,
     Expression(ExpressionKeyword)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum ExpressionKeyword {
     Quote, Lambda, If, Set, Begin, Cond, And, Or,
     Case, Let, LetStar, LetRec, Do, Delay, Quasiquote
@@ -122,10 +122,46 @@ named!(
     )
 );
 
+named!(
+    boolean<bool>,
+    alt!(
+        map!(tag!("#t"), |_| true) |
+        map!(tag!("#f"), |_| false)
+    )
+);
+
+named!(
+    character<char>,
+    preceded!(
+        tag!("#\\"),
+        alt_complete!(
+            map!(tag!("space"), |_| ' ') |
+            map!(tag!("newline"), |_| '\n') |
+            anychar
+        )
+    )
+);
+
+#[derive(Debug, PartialEq)]
+enum Token {
+    Keyword(SyntacticKeyword),
+    Number(i64),
+    Boolean(bool),
+    Character(char),
+}
+
+named!(
+    token<Token>,
+    alt!(
+        map!(syntactic_keyword, |kw| Token::Keyword(kw)) |
+        map!(integer, |i| Token::Number(i)) |
+        map!(boolean, |b| Token::Boolean(b)) |
+        map!(character, |c| Token::Character(c))
+    )
+);
 
 fn parse(line: &str) {
-    // let res = syntactic_keyword(line.as_bytes());
-    let res = integer(line.as_bytes());
+    let res = token(line.as_bytes());
     println!("Parsed {:#?}", res);
 }
 
@@ -158,3 +194,44 @@ fn main() {
     rl.save_history("history.txt").unwrap();
 }
 
+macro_rules! assert_parsed_fully {
+    ($parser:expr, $input:expr, $result:expr) => {
+        assert_eq!($parser($input.as_bytes()), nom::IResult::Done(&b""[..], $result));
+    } 
+}
+
+#[test]
+fn test_boolean() {
+    assert_parsed_fully!(boolean, "#t", true);
+    assert_parsed_fully!(boolean, "#f", false);
+}
+
+#[test]
+fn test_character() {
+    assert_parsed_fully!(character, "#\\space", ' ');
+    assert_parsed_fully!(character, "#\\newline", '\n');
+    assert_parsed_fully!(character, "#\\ ", ' ');
+    assert_parsed_fully!(character, "#\\X", 'X');
+}
+
+#[test]
+fn test_integer() {
+    assert_parsed_fully!(integer, "1", 1);
+    assert_parsed_fully!(integer, "#d+1", 1);
+    assert_parsed_fully!(integer, "-1", -1);
+    assert_parsed_fully!(integer, "#b010101", 21);
+    assert_parsed_fully!(integer, "#o77", 63);
+    assert_parsed_fully!(integer, "#xFF", 255);
+    assert_parsed_fully!(integer, "#x-ff", -255);
+}
+
+#[test]
+fn test_token() {
+    assert_parsed_fully!(token, "1", Token::Number(1));
+    assert_parsed_fully!(token, "else", Token::Keyword(SyntacticKeyword::Else));
+    assert_parsed_fully!(token, "lambda", Token::Keyword(
+        SyntacticKeyword::Expression(ExpressionKeyword::Lambda))
+    );
+    assert_parsed_fully!(token, "#\\space", Token::Character(' '));
+    // ...
+}
