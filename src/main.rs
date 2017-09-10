@@ -146,21 +146,23 @@ named!(
 
 #[derive(Debug, PartialEq)]
 enum Token {
-    Keyword(SyntacticKeyword),
+    // Keyword(SyntacticKeyword),
     Number(i64),
     Boolean(bool),
     Character(char),
     String(String),
+    Identifier(String),
 }
 
 named!(
     token<Token>,
-    alt!(
-        syntactic_keyword => { |kw| Token::Keyword(kw) } |
+    alt_complete!(
+        // syntactic_keyword => { |kw| Token::Keyword(kw) } |
         integer           => { |i| Token::Number(i) } |
         boolean           => { |b| Token::Boolean(b) } |
         character         => { |c| Token::Character(c) } |
-        string            => { |s| Token::String(s) }
+        string            => { |s| Token::String(s) } |
+        identifier        => { |s| Token::Identifier(s) }
     )
 );
 
@@ -168,7 +170,7 @@ named!(string<String>,
     delimited!(tag!("\""), string_content, tag!("\""))
 );
 
-fn to_s(i:Vec<u8>) -> String {
+fn to_s(i: Vec<u8>) -> String {
   String::from_utf8_lossy(&i).into_owned()
 }
 
@@ -190,6 +192,30 @@ named!(
     )
 );
 
+named!(letter<char>, one_of!("abcdefghijklmnopqrstuvwxyz"));
+named!(single_digit<char>, one_of!("0123456789"));
+named!(special_initial<char>, one_of!("!$%&*/:<=>?^_~"));
+named!(special_subsequent<char>, one_of!("+-.@"));
+
+named!(initial<char>, alt!(letter | special_initial));
+named!(subsequent<char>, alt!(initial | single_digit | special_subsequent));
+
+named!(
+    common_identifier,
+    recognize!(
+        do_parse!(initial >> many0!(subsequent) >> ())
+    )
+);
+
+named!(peculiar_identifier, alt!(tag!("+") | tag!("-") | tag!("...")));
+
+named!(
+    identifier<String>,
+    map!(
+        alt!(peculiar_identifier | common_identifier),
+        |s| String::from_utf8_lossy(s).into_owned()
+    )
+);
 
 // named!(
 //     string_content<String>,
