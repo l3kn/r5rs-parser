@@ -152,6 +152,10 @@ enum Token {
     Character(char),
     String(String),
     Identifier(String),
+    LBracket, RBracket, HashBracket,
+    Quote, Quasiquote,
+    Unquote, UnquoteSplicing,
+    Dot
 }
 
 named!(
@@ -162,7 +166,15 @@ named!(
         boolean           => { |b| Token::Boolean(b) } |
         character         => { |c| Token::Character(c) } |
         string            => { |s| Token::String(s) } |
-        identifier        => { |s| Token::Identifier(s) }
+        identifier        => { |s| Token::Identifier(s) } |
+        tag!("(")         => { |_| Token::LBracket } |
+        tag!(")")         => { |_| Token::RBracket } |
+        tag!("#(")        => { |_| Token::HashBracket } |
+        tag!("'")         => { |_| Token::Quote } |
+        tag!("`")         => { |_| Token::Quasiquote } |
+        tag!(",@")        => { |_| Token::UnquoteSplicing } |
+        tag!(",")         => { |_| Token::Unquote } |
+        tag!(".")         => { |_| Token::Dot }
     )
 );
 
